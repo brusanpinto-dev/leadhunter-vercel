@@ -1,8 +1,4 @@
 module.exports = function handler(req, res) {
-  const SENHA = process.env.SENHA_PAINEL || "leadhunter2024";
-  const token = req.headers["x-token"];
-  if (token !== SENHA) return res.status(401).json({ erro: "Não autorizado" });
-
   res.json({
     municipios: {
       "3301157": "Cabo Frio",

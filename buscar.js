@@ -1,14 +1,11 @@
 const https = require("https");
 
 function httpGet(url) {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     https.get(url, { timeout: 8000 }, (res) => {
       let data = "";
       res.on("data", chunk => data += chunk);
-      res.on("end", () => {
-        try { resolve(JSON.parse(data)); }
-        catch { resolve(null); }
-      });
+      res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
     }).on("error", () => resolve(null));
   });
 }
@@ -46,11 +43,7 @@ const CNAES = {
 };
 
 module.exports = async function handler(req, res) {
-  const SENHA = process.env.SENHA_PAINEL || "leadhunter2024";
   if (req.method !== "POST") return res.status(405).end();
-  const token = req.headers["x-token"];
-  if (token !== SENHA) return res.status(401).json({ erro: "Não autorizado" });
-
   const { municipios = [], segmentos = [], limite = 100 } = req.body;
   if (!municipios.length || !segmentos.length) {
     return res.status(400).json({ erro: "Selecione municípios e segmentos" });
@@ -65,8 +58,7 @@ module.exports = async function handler(req, res) {
       const munNome = MUNICIPIOS[munId] || munId;
       for (const cnae of cnaes) {
         if (leads.length >= limite) break;
-        const url = `https://brasilapi.com.br/api/cnpj/v1/search?municipio=${munId}&cnae=${cnae}&porte=ME,EPP&situacao=ATIVA`;
-        const data = await httpGet(url);
+        const data = await httpGet(`https://brasilapi.com.br/api/cnpj/v1/search?municipio=${munId}&cnae=${cnae}&porte=ME,EPP&situacao=ATIVA`);
         const empresas = Array.isArray(data) ? data : (data?.data || []);
         for (const emp of empresas) {
           if (leads.length >= limite) break;

@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LeadHunter — Gerador de Leads RJ</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{--bg:#0A0A0F;--bg2:#111118;--bg3:#18181F;--border:#2A2A35;--accent:#00FF87;--accent2:#00C96A;--text:#F0F0F5;--muted:#6B6B80;--amber:#FFB830;}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh;}
+.header{border-bottom:1px solid var(--border);padding:0 2rem;display:flex;align-items:center;height:60px;background:var(--bg);position:sticky;top:0;z-index:50;gap:16px;}
+.logo{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;color:var(--accent);}
+.badge{font-size:11px;font-family:'DM Mono',monospace;color:var(--accent);background:rgba(0,255,135,0.08);padding:4px 10px;border-radius:99px;border:1px solid rgba(0,255,135,0.2);}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:calc(100vh - 60px);}
+.sidebar{border-right:1px solid var(--border);padding:1.5rem;background:var(--bg2);}
+.slabel{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:2px;color:var(--muted);text-transform:uppercase;margin-bottom:8px;margin-top:1.25rem;}
+.slabel:first-child{margin-top:0;}
+.check-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:8px;cursor:pointer;font-size:13px;border:1px solid transparent;margin-bottom:3px;user-select:none;}
+.check-item:hover{background:var(--bg3);}
+.check-item.on{background:rgba(0,255,135,0.06);border-color:rgba(0,255,135,0.2);color:var(--accent);}
+.box{width:15px;height:15px;border-radius:4px;border:1.5px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10px;color:#000;}
+.check-item.on .box{background:var(--accent);border-color:var(--accent);}
+.limit-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.lval{font-family:'DM Mono',monospace;font-size:15px;color:var(--accent);}
+input[type=range]{width:100%;accent-color:var(--accent);}
+.apify-row{margin-top:1rem;}
+.apify-row input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px 10px;color:var(--text);font-size:12px;font-family:'DM Mono',monospace;outline:none;}
+.apify-row input:focus{border-color:var(--accent);}
+.apify-row label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;}
+.btn{width:100%;padding:12px;background:var(--accent);color:#000;font-weight:700;font-size:14px;border:none;border-radius:10px;cursor:pointer;font-family:'Syne',sans-serif;margin-top:1rem;transition:all .2s;}
+.btn:hover:not(:disabled){background:var(--accent2);}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.main{padding:2rem;}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:1.5rem;}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1rem;}
+.stat-l{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+.stat-v{font-family:'Syne',sans-serif;font-size:26px;font-weight:700;}
+.stat-v.g{color:var(--accent);}
+.prog-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;display:none;}
+.prog-card.show{display:block;}
+.prog-top{display:flex;justify-content:space-between;margin-bottom:10px;font-size:13px;}
+.prog-bar{height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .4s;}
+.prog-log{font-size:11px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:8px;}
+.table-card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;overflow:hidden;}
+.table-top{padding:1rem 1.5rem;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);}
+.btn-dl{padding:7px 16px;background:var(--accent);color:#000;font-weight:700;font-size:12px;border:none;border-radius:8px;cursor:pointer;font-family:'Syne',sans-serif;}
+.btn-dl:disabled{opacity:.3;cursor:not-allowed;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:9px 14px;font-size:10px;font-family:'DM Mono',monospace;letter-spacing:1px;color:var(--muted);background:var(--bg3);border-bottom:1px solid var(--border);}
+td{padding:10px 14px;border-bottom:1px solid var(--border);}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:var(--bg3);}
+.tel{font-family:'DM Mono',monospace;font-size:12px;color:var(--accent);}
+.mut{color:var(--muted);font-size:12px;}
+.empty{padding:3rem;text-align:center;color:var(--muted);}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo">LeadHunter</div>
+  <div class="badge">RJ · Google Maps</div>
+</header>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="slabel">Município</div>
+    <div id="mun-list">
+      <div class="check-item" data-v="Cabo Frio RJ" onclick="toggle(this)"><div class="box"></div>Cabo Frio</div>
+      <div class="check-item" data-v="Búzios RJ" onclick="toggle(this)"><div class="box"></div>Búzios</div>
+      <div class="check-item" data-v="Niterói RJ" onclick="toggle(this)"><div class="box"></div>Niterói</div>
+      <div class="check-item" data-v="Rio de Janeiro RJ" onclick="toggle(this)"><div class="box"></div>Rio de Janeiro</div>
+      <div class="check-item" data-v="Nova Iguaçu RJ" onclick="toggle(this)"><div class="box"></div>Nova Iguaçu</div>
+      <div class="check-item" data-v="São Gonçalo RJ" onclick="toggle(this)"><div class="box"></div>São Gonçalo</div>
+      <div class="check-item" data-v="Petrópolis RJ" onclick="toggle(this)"><div class="box"></div>Petrópolis</div>
+      <div class="check-item" data-v="Macaé RJ" onclick="toggle(this)"><div class="box"></div>Macaé</div>
+      <div class="check-item" data-v="Araruama RJ" onclick="toggle(this)"><div class="box"></div>Araruama</div>
+      <div class="check-item" data-v="Campos dos Goytacazes RJ" onclick="toggle(this)"><div class="box"></div>Campos</div>
+    </div>
+
+    <div class="slabel">Segmento</div>
+    <div id="seg-list">
+      <div class="check-item" data-v="clínicas médicas" onclick="toggle(this)"><div class="box"></div>Saúde e Clínicas</div>
+      <div class="check-item" data-v="lojas comércio" onclick="toggle(this)"><div class="box"></div>Comércio</div>
+      <div class="check-item" data-v="escritórios serviços" onclick="toggle(this)"><div class="box"></div>Serviços</div>
+      <div class="check-item" data-v="contabilidade escritório contábil" onclick="toggle(this)"><div class="box"></div>Contabilidade</div>
+      <div class="check-item" data-v="empresa tecnologia" onclick="toggle(this)"><div class="box"></div>Tecnologia</div>
+      <div class="check-item" data-v="escola educação" onclick="toggle(this)"><div class="box"></div>Educação</div>
+      <div class="check-item" data-v="construtora construção" onclick="toggle(this)"><div class="box"></div>Construção</div>
+      <div class="check-item" data-v="restaurante alimentação" onclick="toggle(this)"><div class="box"></div>Alimentação</div>
+    </div>
+
+    <div class="slabel">Limite de leads</div>
+    <div class="limit-row">
+      <span style="font-size:12px;color:var(--muted)">Máximo</span>
+      <span class="lval" id="lval">50</span>
+    </div>
+    <input type="range" min="10" max="200" step="10" value="50" oninput="document.getElementById('lval').textContent=this.value" id="limite"/>
+
+    <div class="apify-row">
+      <label>Apify API Token</label>
+      <input type="password" id="apify-token" placeholder="apify_api_..."/>
+    </div>
+
+    <button class="btn" id="btn-buscar" onclick="buscar()">⚡ Buscar Leads</button>
+  </aside>
+
+  <main class="main">
+    <div class="stats">
+      <div class="stat"><div class="stat-l">Encontrados</div><div class="stat-v" id="v-total">—</div></div>
+      <div class="stat"><div class="stat-l">Com telefone</div><div class="stat-v g" id="v-tel">—</div></div>
+      <div class="stat"><div class="stat-l">Buscas feitas</div><div class="stat-v" id="v-buscas">—</div></div>
+    </div>
+
+    <div class="prog-card" id="prog-card">
+      <div class="prog-top">
+        <span id="prog-title">Buscando...</span>
+        <span id="prog-pct" style="font-family:'DM Mono',monospace;color:var(--accent)">0%</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
+      <div class="prog-log" id="prog-log">Iniciando...</div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-top">
+        <span style="font-size:14px;font-weight:500;">Leads gerados</span>
+        <button class="btn-dl" id="btn-dl" disabled onclick="baixar()">↓ Baixar CSV</button>
+      </div>
+      <div id="table-wrap"><div class="empty">Configure os filtros e clique em Buscar Leads 🎯</div></div>
+    </div>
+  </main>
+</div>
+
+<script>
+function toggle(el) {
+  el.classList.toggle('on');
+  el.querySelector('.box').textContent = el.classList.contains('on') ? '✓' : '';
+}
+
+let todosLeads = [];
+let totalBuscas = 0;
+
+async function buscar() {
+  const municipios = [...document.querySelectorAll('#mun-list .check-item.on')].map(e => e.dataset.v);
+  const segmentos  = [...document.querySelectorAll('#seg-list .check-item.on')].map(e => e.dataset.v);
+  const limite     = parseInt(document.getElementById('limite').value);
+  const token      = document.getElementById('apify-token').value.trim();
+
+  if (!municipios.length) return alert('Selecione ao menos um município!');
+  if (!segmentos.length)  return alert('Selecione ao menos um segmento!');
+  if (!token)             return alert('Informe seu Apify API Token!');
+
+  document.getElementById('btn-buscar').disabled = true;
+  document.getElementById('btn-dl').disabled = true;
+  document.getElementById('prog-card').classList.add('show');
+  todosLeads = [];
+  totalBuscas = 0;
+
+  const combinacoes = [];
+  for (const mun of municipios)
+    for (const seg of segmentos)
+      combinacoes.push({ query: `${seg} em ${mun}`, mun, seg });
+
+  const maxPorBusca = Math.max(10, Math.ceil(limite / combinacoes.length));
+
+  for (let i = 0; i < combinacoes.length; i++) {
+    if (todosLeads.length >= limite) break;
+    const { query, mun, seg } = combinacoes[i];
+    const pct = Math.round((i / combinacoes.length) * 100);
+
+    document.getElementById('prog-fill').style.width = pct + '%';
+    document.getElementById('prog-pct').textContent = pct + '%';
+    document.getElementById('prog-log').textContent = `Buscando: "${query}"...`;
+    document.getElementById('prog-title').textContent = `Busca ${i+1} de ${combinacoes.length}`;
+
+    try {
+      // Inicia Actor
+      const runResp = await fetch(`https://api.apify.com/v2/acts/apify~google-maps-scraper/runs?token=${token}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          searchStringsArray: [query],
+          maxCrawledPlacesPerSearch: maxPorBusca,
+          language: 'pt',
+          includeHistogram: false,
+          includeOpeningHours: false,
+        })
+      });
+      const runData = await runResp.json();
+      const runId = runData?.data?.id;
+      const datasetId = runData?.data?.defaultDatasetId;
+      if (!runId) continue;
+
+      // Aguarda conclusão
+      let ok = false;
+      for (let t = 0; t < 12; t++) {
+        await sleep(5000);
+        document.getElementById('prog-log').textContent = `Aguardando resultados de "${query}"... (${(t+1)*5}s)`;
+        const st = await fetch(`https://api.apify.com/v2/actor-runs/${runId}?token=${token}`);
+        const stData = await st.json();
+        if (stData?.data?.status === 'SUCCEEDED') { ok = true; break; }
+        if (['FAILED','ABORTED'].includes(stData?.data?.status)) break;
+      }
+
+      if (!ok) continue;
+
+      // Busca resultados
+      const items = await fetch(`https://api.apify.com/v2/datasets/${datasetId}/items?token=${token}&format=json&limit=${maxPorBusca}`);
+      const data = await items.json();
+      if (!Array.isArray(data)) continue;
+
+      totalBuscas++;
+      for (const item of data) {
+        if (todosLeads.length >= limite) break;
+        const tel = limparTel(item.phone || item.phoneUnformatted || '');
+        if (!tel) continue;
+        todosLeads.push({
+          nome: item.title || 'Empresa',
+          telefone: tel,
+          municipio: mun.replace(' RJ',''),
+          segmento: seg,
+          avaliacao: item.totalScore || '',
+          endereco: item.address || '',
+          email: item.website || '',
+        });
+      }
+
+      document.getElementById('v-total').textContent = todosLeads.length;
+      document.getElementById('v-tel').textContent = todosLeads.length;
+      document.getElementById('v-buscas').textContent = totalBuscas;
+      renderTabela(todosLeads.slice(0, 50));
+
+    } catch(e) {
+      document.getElementById('prog-log').textContent = 'Erro: ' + e.message;
+    }
+  }
+
+  document.getElementById('prog-fill').style.width = '100%';
+  document.getElementById('prog-pct').textContent = '100%';
+  document.getElementById('prog-title').textContent = `✅ ${todosLeads.length} leads encontrados!`;
+  document.getElementById('btn-buscar').disabled = false;
+  if (todosLeads.length > 0) document.getElementById('btn-dl').disabled = false;
+}
+
+function renderTabela(leads) {
+  if (!leads.length) {
+    document.getElementById('table-wrap').innerHTML = '<div class="empty">Nenhum lead encontrado. Tente outros filtros.</div>';
+    return;
+  }
+  document.getElementById('table-wrap').innerHTML = `
+    <div style="overflow:auto;max-height:480px;">
+      <table>
+        <thead><tr><th>NOME</th><th>TELEFONE</th><th>MUNICÍPIO</th><th>SEGMENTO</th><th>AVALIAÇÃO</th></tr></thead>
+        <tbody>${leads.map(l => `<tr>
+          <td style="font-weight:500">${l.nome}</td>
+          <td class="tel">${formatTel(l.telefone)}</td>
+          <td class="mut">${l.municipio}</td>
+          <td class="mut">${l.segmento}</td>
+          <td class="mut">${l.avaliacao ? '⭐ '+l.avaliacao : '—'}</td>
+        </tr>`).join('')}</tbody>
+      </table>
+      ${leads.length >= 50 ? '<div style="padding:10px 14px;font-size:12px;color:var(--muted);border-top:1px solid var(--border)">Mostrando 50 primeiros. Baixe o CSV para lista completa.</div>' : ''}
+    </div>`;
+}
+
+function baixar() {
+  if (!todosLeads.length) return;
+  const header = 'nome,telefone,municipio,segmento,avaliacao,endereco,website\n';
+  const rows = todosLeads.map(l =>
+    `"${l.nome}","${l.telefone}","${l.municipio}","${l.segmento}","${l.avaliacao}","${l.endereco}","${l.email}"`
+  ).join('\n');
+  const blob = new Blob([header + rows], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `leads_rj_${Date.now()}.csv`;
+  a.click();
+}
+
+function limparTel(t) {
+  if (!t) return '';
+  const d = t.replace(/\D/g,'');
+  if (d.length < 10) return '';
+  return d.startsWith('55') ? d : '55'+d;
+}
+
+function formatTel(t) {
+  const d = t.replace(/\D/g,'');
+  if (d.length === 13) return `(${d.slice(2,4)}) ${d.slice(4,9)}-${d.slice(9)}`;
+  if (d.length === 12) return `(${d.slice(2,4)}) ${d.slice(4,8)}-${d.slice(8)}`;
+  return t;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>

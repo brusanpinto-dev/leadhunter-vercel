@@ -1,4 +1,4 @@
-const SENHA = process.env.SENHA_PAINEL || "leadhunter2024";
+const SENHA = process.env.SENHA_PAINEL || "brusanpinto1992";
 
 export default function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();

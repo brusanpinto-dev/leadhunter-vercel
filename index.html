@@ -156,6 +156,7 @@ async function carregarConfig() {
 }
 
 function toggleCheck(el) {
+  event.preventDefault();
   el.classList.toggle('selected');
   el.querySelector('input').checked = el.classList.contains('selected');
 }

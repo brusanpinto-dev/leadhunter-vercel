@@ -1,4 +1,4 @@
-const SENHA = process.env.SENHA_PAINEL || "leadhunter2024";
+const SENHA = process.env.SENHA_PAINEL || "brusanpinto1992";
 
 const CNAES_POR_SEGMENTO = {
   saude:       ["86303","86305","86501"],
@@ -46,7 +46,7 @@ function formatarNome(razao) {
     .join(" ");
 }
 
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
   const token = req.headers["x-token"];

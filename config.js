@@ -1,4 +1,4 @@
-const SENHA = process.env.SENHA_PAINEL || "leadhunter2024";
+const SENHA = process.env.SENHA_PAINEL || "brusanpinto1992";
 
 const MUNICIPIOS = {
   "3301157": "Cabo Frio",
@@ -29,7 +29,7 @@ const SEGMENTOS = [
   { id: "alimentacao", label: "Alimentação" },
 ];
 
-export default function handler(req, res) {
+module.exports = function handler(req, res) {
   const token = req.headers["x-token"];
   if (token !== SENHA) return res.status(401).json({ erro: "Não autorizado" });
   res.json({ municipios: MUNICIPIOS, segmentos: SEGMENTOS });

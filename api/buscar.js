@@ -1,12 +1,33 @@
 const https = require("https");
 
-function httpGet(url) {
+function httpGet(url, options = {}) {
   return new Promise((resolve) => {
-    https.get(url, { timeout: 8000 }, (res) => {
+    const req = https.get(url, { timeout: 15000, ...options }, (res) => {
       let data = "";
       res.on("data", chunk => data += chunk);
       res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
-    }).on("error", () => resolve(null));
+    });
+    req.on("error", () => resolve(null));
+    req.on("timeout", () => { req.destroy(); resolve(null); });
+  });
+}
+
+function httpPost(hostname, path, body, headers = {}) {
+  return new Promise((resolve) => {
+    const bodyStr = JSON.stringify(body);
+    const options = {
+      hostname, path, method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(bodyStr), ...headers },
+      timeout: 15000,
+    };
+    const req = https.request(options, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => { try { resolve(JSON.parse(data)); } catch { resolve(null); } });
+    });
+    req.on("error", () => resolve(null));
+    req.write(bodyStr);
+    req.end();
   });
 }
 
@@ -17,12 +38,12 @@ function limparTelefone(tel) {
   return d.startsWith("55") ? d : `55${d}`;
 }
 
-function formatarNome(razao) {
-  if (!razao) return "Empresa";
+function formatarNome(nome) {
+  if (!nome) return "Empresa";
   const excluir = ["LTDA","ME","EPP","SA","EIRELI","SS","SLU"];
-  return razao.split(" ")
+  return nome.split(" ")
     .filter(p => !excluir.includes(p.toUpperCase()))
-    .slice(0, 3)
+    .slice(0, 4)
     .map(p => p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())
     .join(" ");
 }
@@ -35,52 +56,96 @@ const MUNICIPIOS = {
   "3300100": "Angra dos Reis", "3302270": "Itaboraí", "3300456": "Araruama"
 };
 
-const CNAES = {
-  saude: ["8630503","8630504"], comercio: ["4711301","4712100"],
-  servicos: ["9602501","9609204"], contabil: ["6920601","6911701"],
-  tech: ["6201501","6202300"], educacao: ["8511200","8512100"],
-  construcao: ["4321500","4330404"], alimentacao: ["5611201","5611203"]
+const SEGMENTOS_LABEL = {
+  saude: "Saúde e Clínicas", comercio: "Comércio", servicos: "Serviços Gerais",
+  contabil: "Contabilidade / Jurídico", tech: "Tecnologia", educacao: "Educação",
+  construcao: "Construção", alimentacao: "Alimentação"
 };
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
+
   const { municipios = [], segmentos = [], limite = 100 } = req.body;
   if (!municipios.length || !segmentos.length) {
     return res.status(400).json({ erro: "Selecione municípios e segmentos" });
   }
 
-  const leads = [];
-  const vistos = new Set();
+  const APIFY_TOKEN = process.env.APIFY_TOKEN;
+  if (!APIFY_TOKEN) {
+    return res.status(500).json({ erro: "APIFY_TOKEN não configurado nas variáveis de ambiente da Vercel" });
+  }
 
-  for (const segId of segmentos) {
-    const cnaes = CNAES[segId] || [];
-    for (const munId of municipios) {
-      const munNome = MUNICIPIOS[munId] || munId;
-      for (const cnae of cnaes) {
-        if (leads.length >= limite) break;
-        const data = await httpGet(`https://brasilapi.com.br/api/cnpj/v1/search?municipio=${munId}&cnae=${cnae}&porte=ME,EPP&situacao=ATIVA`);
-        const empresas = Array.isArray(data) ? data : (data?.data || []);
-        for (const emp of empresas) {
-          if (leads.length >= limite) break;
-          const cnpj = (emp.cnpj || "").replace(/\D/g, "");
-          if (vistos.has(cnpj)) continue;
-          const tel = limparTelefone(emp.ddd_telefone_1 || emp.telefone || "");
-          if (!tel) continue;
-          vistos.add(cnpj);
-          leads.push({
-            nome: formatarNome(emp.razao_social),
-            razao_social: emp.razao_social || "",
-            telefone: tel, cnpj, municipio: munNome,
-            segmento: segId, email: emp.email || "", porte: emp.porte || "ME"
-          });
+  const leads = [];
+  const maxPorBusca = Math.ceil(limite / (municipios.length * segmentos.length));
+
+  for (const munId of municipios) {
+    const munNome = MUNICIPIOS[munId] || munId;
+    for (const segId of segmentos) {
+      if (leads.length >= limite) break;
+      const segLabel = SEGMENTOS_LABEL[segId] || segId;
+      const query = `${segLabel} em ${munNome} RJ`;
+
+      // 1. Inicia o Actor do Google Maps
+      const runResp = await httpPost(
+        "api.apify.com",
+        `/v2/acts/apify~google-maps-scraper/runs?token=${APIFY_TOKEN}`,
+        {
+          searchStringsArray: [query],
+          maxCrawledPlacesPerSearch: maxPorBusca,
+          language: "pt",
+          includeHistogram: false,
+          includeOpeningHours: false,
         }
+      );
+
+      if (!runResp?.data?.id) continue;
+
+      const runId = runResp.data.id;
+      const datasetId = runResp.data.defaultDatasetId;
+
+      // 2. Aguarda conclusão (máx 50s)
+      let concluido = false;
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 5000));
+        const statusResp = await httpGet(
+          `https://api.apify.com/v2/actor-runs/${runId}?token=${APIFY_TOKEN}`
+        );
+        if (statusResp?.data?.status === "SUCCEEDED") { concluido = true; break; }
+        if (["FAILED","ABORTED"].includes(statusResp?.data?.status)) break;
+      }
+
+      if (!concluido) continue;
+
+      // 3. Busca resultados
+      const items = await httpGet(
+        `https://api.apify.com/v2/datasets/${datasetId}/items?token=${APIFY_TOKEN}&format=json&limit=${maxPorBusca}`
+      );
+
+      if (!Array.isArray(items)) continue;
+
+      for (const item of items) {
+        if (leads.length >= limite) break;
+        const tel = limparTelefone(item.phone || item.phoneUnformatted || "");
+        if (!tel) continue;
+        leads.push({
+          nome: formatarNome(item.title || item.name || "Empresa"),
+          razao_social: item.title || "",
+          telefone: tel,
+          cnpj: "",
+          municipio: munNome,
+          segmento: segLabel,
+          email: item.email || "",
+          porte: "ME",
+          avaliacao: item.totalScore || "",
+          endereco: item.address || "",
+        });
       }
     }
   }
 
-  const header = "nome,telefone,razao_social,cnpj,municipio,segmento,porte,email\n";
+  const header = "nome,telefone,razao_social,municipio,segmento,email,avaliacao,endereco\n";
   const rows = leads.map(l =>
-    `"${l.nome}","${l.telefone}","${l.razao_social}","${l.cnpj}","${l.municipio}","${l.segmento}","${l.porte}","${l.email}"`
+    `"${l.nome}","${l.telefone}","${l.razao_social}","${l.municipio}","${l.segmento}","${l.email}","${l.avaliacao}","${l.endereco}"`
   ).join("\n");
 
   res.json({ total: leads.length, leads, csv: header + rows });
